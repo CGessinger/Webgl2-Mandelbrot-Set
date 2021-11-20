@@ -1,0 +1,19 @@
+html,
+body {
+    margin: 0;
+    overflow: hidden;
+}
+
+#console_error {
+    color: red;
+    height: 1em;
+    width: 1em;
+    position: fixed;
+    visibility: hidden;
+}
+
+#canvas {
+    width: 100vw;
+    height: 100vh;
+    display: block;
+}

@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<!--[if lt IE 7]>      <html class="no-js lt-ie9 lt-ie8 lt-ie7"> <![endif]-->
+<!--[if IE 7]>         <html class="no-js lt-ie9 lt-ie8"> <![endif]-->
+<!--[if IE 8]>         <html class="no-js lt-ie9"> <![endif]-->
+<!--[if gt IE 8]>      <html class="no-js"> <!--<![endif]-->
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title></title>
+    <meta name="description" content="">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="css/stylesheet.css">
+
+    <script src="webgl-debug.js"></script>
+    <script src="https://webglfundamentals.org/webgl/resources/webgl-utils.js"></script>
+</head>
+
+<body onload="main()">
+    <svg id="console_error" stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 20 20"
+        xmlns="http://www.w3.org/2000/svg">
+        <path fill-rule="evenodd"
+            d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+            clip-rule="evenodd"></path>
+    </svg>
+    <script>
+        window.onerror = function (error, url, line) {
+            document.getElementById("console_error").style.visibility = "visible";
+        };
+    </script>
+    <!--[if lt IE 7]>
+            <p class="browsehappy">You are using an <strong>outdated</strong> browser. Please <a href="#">upgrade your browser</a> to improve your experience.</p>
+        <![endif]-->
+    <canvas id="canvas"></canvas>
+    <script id="vertex-shader-2d" type="x-shader/x-vertex">#version 300 es
+        in vec2 a_position;
+        out vec2 v_position;
+        
+        uniform vec2 u_scale; 
+        uniform vec2 u_center;
+        
+        void main() {
+            v_position = (u_center + vec2(-0.5, 0.0)) + a_position * u_scale;
+            gl_Position = vec4(a_position, 0, 1);
+        }
+    </script>
+    <!-- fragment shader -->
+    <script id="fragment-shader-2d" type="x-shader/x-fragment">#version 300 es
+        precision mediump float;
+        
+        uniform vec4 u_color;
+        uniform int u_maxInterations;
+
+        in vec2 v_position;
+        out vec4 outColor;
+
+        vec4 colorPalette(int n, vec4 baseColor, vec4 modColor)
+        {
+            return mix(baseColor, modColor, float(n));
+        }
+
+        vec2 f(vec2 z, vec2 c)
+        {
+            float x_new = z.x * z.x - z.y * z.y + c.x;
+            float y = 2.0 * z.x * z.y + c.y;
+            float x = x_new;
+            return vec2(x, y);
+        }
+
+        int mandelbrot(vec2 c)
+        {
+            vec2 mandelbrot_result = vec2(0.0);
+            int n = 0;
+
+            while (n < u_maxInterations  && length(mandelbrot_result) <= 2.0)
+            {
+                mandelbrot_result = f(mandelbrot_result, c);
+                n++;
+            }
+            return n;
+        }
+        
+        void main() {
+            int iterations = mandelbrot(v_position);
+
+            if (iterations == u_maxInterations)
+                outColor = u_color * vec4(1.0, 1.0, 1.0, 0.5);
+            else
+                outColor = colorPalette(iterations, u_color, u_color * vec4(1.5, 1.5, 1.5, 1.0));
+
+        }
+    </script>
+    <script src="script.js" async defer></script>
+</body>
+
+</html>
