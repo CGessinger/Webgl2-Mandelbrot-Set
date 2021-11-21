@@ -1,13 +1,19 @@
 /*global webglUtils*/
-
 "use strict";
 
-var zoom_active = false;
-var move_active = false;
-var mouseX = 0;
-var mouseY = 0;
-var scaling = [2.0, 2.0];
-var center = [0.0, 0.0];
+const camera = {
+    zoom: 1.0
+};
+
+const drag = {
+    active: false,
+    initialX: 0,
+    initialY: 0,
+    currentX: 0,
+    currentY: 0,
+    xOffset: 0,
+    yOffset: 0
+};
 
 // eslint-disable-next-line no-unused-vars
 function main() {
@@ -39,62 +45,85 @@ function main() {
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1.0, -1.0, 1.0, -1.0, -1.0, 1.0, 1.0, -1.0, 1.0, 1.0, -1.0, 1.0]), gl.STATIC_DRAW);
     gl.vertexAttribPointer(positionAttributeLocation, 2, gl.FLOAT, false, 0, 0); // size, type, normalize, stride, offset
 
-    const maxIterationUniform = gl.getUniformLocation(program, "u_maxInterations");
-    gl.uniform1i(maxIterationUniform, 1000);
-
-    const scaleUniform = gl.getUniformLocation(program, "u_scale");
-    gl.uniform2fv(scaleUniform, scaling);
-
-    const centerUniform = gl.getUniformLocation(program, "u_center");
-    gl.uniform2fv(centerUniform, center);
-
     const colorUniformLocation = gl.getUniformLocation(program, "u_color");
     gl.uniform4f(colorUniformLocation, Math.random(), Math.random(), Math.random(), 1);
+
+    const iterationUniformLocation = gl.getUniformLocation(program, "u_maxIterations");
+    gl.uniform1i(iterationUniformLocation, 1000);
     
+    const resolutionUniform = gl.getUniformLocation(program, "u_resolution");
+    gl.uniform2f(resolutionUniform, canvas.width, canvas.height);
 
-    /*
+    const zoomUniform = gl.getUniformLocation(program, "u_zoom");
+    gl.uniform1f(zoomUniform, camera.zoom);
+
+    drag.currentX = canvas.width / 2;
+    drag.currentY = canvas.height / 2;
+    drag.xOffset = canvas.width / 2;
+    drag.yOffset = canvas.height / 2;
+    const centerUniform = gl.getUniformLocation(program, "u_center");
+    gl.uniform2f(centerUniform, drag.currentX, drag.currentX);
+
     canvas.addEventListener('wheel', (e) => {
-        changeZoom(gl, program, zoomUniform, e.deltaY * 0.1);
-        render(gl, program);
-    }, false);
-    */
-
-    canvas.addEventListener('mousedown', (e) => {
-        zoom_active = true;
-        move_active = true;
-        mouseX = e.clientX;
-        mouseY = e.clientY;
+        camera.zoom *= e.deltaY < 0 ? 0.99 : 1.01;
     }, false);
 
-    canvas.addEventListener('mouseup', () => {
-        zoom_active = false;
-        move_active = false;
-    }, false);
 
-    canvas.addEventListener('mousemove', (e) => {
-        if(move_active)
-        {
-            mouseX = e.clientX;
-            mouseY = e.clientY;
+    canvas.addEventListener("touchstart", dragStart, false);
+    canvas.addEventListener("touchend", dragEnd, false);
+    canvas.addEventListener("touchmove", dragging, false);
+
+    canvas.addEventListener("mousedown", dragStart, false);
+    canvas.addEventListener("mouseup", dragEnd, false);
+    canvas.addEventListener("mousemove", dragging, false);
+
+    function dragStart(e) {
+        if (e.type === "touchstart") {
+            drag.initialX = e.touches[0].clientX * camera.zoom - drag.xOffset;
+            drag.initialY = e.touches[0].clientY * camera.zoom - drag.yOffset;
+        } else {
+            drag.initialX = e.clientX * camera.zoom - drag.xOffset;
+            drag.initialY = e.clientY * camera.zoom - drag.yOffset;
         }
-    }, false);
+
+        drag.active = true;
+    }
+
+    function dragEnd() {
+        drag.initialX = drag.currentX;
+        drag.initialY = drag.currentY;
+
+        drag.active = false;
+    }
+
+    function dragging(e) {
+        if (drag.active) {
+            e.preventDefault();
+
+            if (e.type === "touchmove") {
+                drag.currentX = e.touches[0].clientX * camera.zoom - drag.initialX;
+                drag.currentY = e.touches[0].clientY * camera.zoom - drag.initialY;
+            } else {
+                drag.currentX = e.clientX * camera.zoom - drag.initialX;
+                drag.currentY = e.clientY * camera.zoom - drag.initialY;
+            }
+
+            drag.xOffset = drag.currentX;
+            drag.yOffset = drag.currentY;         
+        }
+    }
+
 
     render(gl, program);
 }
 
 function render(gl, program) {
-    if(zoom_active)
-    {
-        var scaleUniform = gl.getUniformLocation(program, "u_scale");
-        scaling[0] *= 1 / 1.01;
-        scaling[1] *= 1 / 1.01;
-        gl.uniform2fv(scaleUniform, scaling);
+    const zoomUniform = gl.getUniformLocation(program, "u_zoom");
+    gl.uniform1f(zoomUniform, camera.zoom);
 
-        var centerUniform = gl.getUniformLocation(program, "u_center");
-        center[0] =  ( (mouseX - center[0] * scaling[0]) / gl.canvas.width * 2.0 - 1.0 );
-        center[1] = - ( (mouseY - center[1] * scaling[1]) / gl.canvas.height * 2.0 - 1.0 );
-        gl.uniform2fv(centerUniform, center);
-    }
+    const centerUniform = gl.getUniformLocation(program, "u_center");
+    gl.uniform2f(centerUniform, drag.currentX, drag.currentY);
+
 
     gl.drawArrays(gl.TRIANGLES, 0, 6); // primitiveType, offset, count
 
