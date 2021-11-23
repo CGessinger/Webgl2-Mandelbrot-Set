@@ -2,7 +2,8 @@
 "use strict";
 
 const camera = {
-    zoom: 1.0
+    zoom: 1.0,
+    maxIterations: 1000
 };
 
 const drag = {
@@ -49,7 +50,7 @@ function main() {
     gl.uniform4f(colorUniformLocation, Math.random(), Math.random(), Math.random(), 1);
 
     const iterationUniformLocation = gl.getUniformLocation(program, "u_maxIterations");
-    gl.uniform1i(iterationUniformLocation, 1000);
+    gl.uniform1i(iterationUniformLocation, camera.maxIterations);
     
     const resolutionUniform = gl.getUniformLocation(program, "u_resolution");
     gl.uniform2f(resolutionUniform, canvas.width, canvas.height);
@@ -65,7 +66,9 @@ function main() {
     gl.uniform2f(centerUniform, drag.currentX, drag.currentX);
 
     canvas.addEventListener('wheel', (e) => {
-        camera.zoom *= e.deltaY < 0 ? 0.99 : 1.01;
+        camera.zoom *= 1 + e.deltaY / 1000;
+        camera.maxIterations *= 1 - e.deltaY / 5000;
+        console.log(camera.maxIterations);
     }, false);
 
 
@@ -124,6 +127,8 @@ function render(gl, program) {
     const centerUniform = gl.getUniformLocation(program, "u_center");
     gl.uniform2f(centerUniform, drag.currentX, drag.currentY);
 
+    const iterationUniformLocation = gl.getUniformLocation(program, "u_maxIterations");
+    gl.uniform1i(iterationUniformLocation, camera.maxIterations);
 
     gl.drawArrays(gl.TRIANGLES, 0, 6); // primitiveType, offset, count
 
