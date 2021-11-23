@@ -98,7 +98,6 @@ function main() {
         camera.zoom *= 1 - e.deltaY / 1000;
         camera.maxIterations *= 1 - e.deltaY / 5000;
         camera.maxIterations = Math.min(camera.maxIterations, camera.maxIterationsCap);
-        console.log(camera.maxIterations);
     }, false);
 
 
